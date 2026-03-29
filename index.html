@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liz Nexa - Smooth Verification</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fc;
+            --primary: #5c4ee5;
+            --primary-hover: #4a3fd1;
+            --success: #1a531f;
+            --error: #d63031;
+            --border: #e1e8ed;
+            --tg-blue: #34aadc;
+            --tg-hover: #2b95c4;
+        }
+
+        /* បង្ខំឱ្យគ្រប់ធាតុទាំងអស់មានទំហំស្មើគ្នាល្អ (Fix Alignment 100%) */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body { background-color: var(--bg-color); font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+
+        /* --- Animations --- */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes spinner { to { transform: rotate(360deg); } }
+
+        /* --- Splash Screen --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; display: flex; justify-content: center; align-items: center;
+            z-index: 9999; transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        .splash-text {
+            font-size: 3rem; font-weight: 700; color: var(--primary);
+            animation: splashAnim 1.2s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes splashAnim {
+            0% { opacity: 0; transform: scale(0.8); filter: blur(5px); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+        .splash-hidden { opacity: 0; visibility: hidden; }
+
+        /* --- Main UI --- */
+        .container { 
+            width: 90%; max-width: 400px; background: white; padding: 35px 30px; border-radius: 28px; text-align: center; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.06); display: none;
+            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ជៀសវាងអក្សរ Liz Nexa លោតពេលប្តូរផ្ទាំង */
+        .header-title { font-size: 1.8rem; margin-bottom: 25px; font-weight: 700; color: #111; }
+
+        /* --- Step 1 --- */
+        #step1 { transition: all 0.4s ease; } /* ចលនាពេលរសាត់បាត់ */
+        
+        .instruction { color: #555; font-size: 14px; margin-bottom: 20px; }
+
+        .task-card { 
+            display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 18px; margin: 12px 0; border-radius: 18px; border: 1px solid var(--border); cursor: pointer; position: relative; 
+            overflow: hidden; transition: all 0.3s ease;
+        }
+        .task-card:not(.completed):not(.disabled):hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 4px 12px rgba(92, 78, 229, 0.1); }
+        .task-card.disabled { opacity: 0.5; cursor: not-allowed; background: #f9f9f9; }
+        .task-card.completed { background-color: #e6ffed; border-color: #a7f3d0; cursor: default; }
+        
+        .status-text { font-size: 11px; font-weight: 700; color: #f39c12; text-transform: uppercase; }
+        .loading-line { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--primary); width: 0%; transition: width 3s linear; }
+
+        /* Verify Section */
+        .input-group { display: flex; width: 100%; gap: 10px; margin: 15px 0 25px; }
+        .input-group.error { animation: shake 0.3s; }
+        .pass-input { flex: 1; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); outline: none; font-size: 14px; font-family: 'Inter'; transition: 0.3s; width: 100%; }
+        .pass-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(92, 78, 229, 0.1); }
+        
+        .verify-btn { background: var(--primary); color: white; border: none; padding: 0 20px; border-radius: 14px; cursor: pointer; font-weight: 600; transition: all 0.2s; min-width: 85px; }
+        .verify-btn:active { transform: scale(0.94); }
+
+        /* Confirm Button */
+        .confirm-btn { 
+            width: 100%; padding: 16px; border-radius: 16px; border: none; background: #d1d8ff; color: #8a94cc; font-size: 16px; font-weight: 600; cursor: not-allowed; 
+            transition: all 0.4s ease; display: flex; justify-content: center; align-items: center; position: relative;
+        }
+        .confirm-btn.active { background: var(--primary); color: white; cursor: pointer; box-shadow: 0 6px 20px rgba(92, 78, 229, 0.3); }
+        .confirm-btn.active:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .confirm-btn.active:active { transform: translateY(1px); }
+        
+        /* Loading Spinner ក្នុងប៊ូតុង Confirm */
+        .loader { width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spinner 0.6s linear infinite; display: none; position: absolute; }
+        .btn-text { transition: opacity 0.3s; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* --- Step 2 --- */
+        #step2 { display: none; opacity: 0; transform: translateY(15px); transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+        
+        .step2-msg { font-size: 15px; color: #444; margin-bottom: 25px; font-weight: 500; }
+        
+        /* Fix Alignment 100% ត្រង់នេះ */
+        .copy-group { display: flex; width: 100%; gap: 10px; margin-bottom: 15px; }
+        .copy-input { flex: 1; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: #fdfdfd; font-weight: 600; text-align: center; color: #111; font-size: 15px; width: 100%; }
+        .copy-btn { background: var(--primary); color: white; border: none; width: 52px; height: auto; border-radius: 14px; cursor: pointer; display: flex; justify-content: center; align-items: center; flex-shrink: 0; transition: 0.2s; }
+        .copy-btn:active { transform: scale(0.9); }
+        
+        .join-btn { 
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            background: var(--tg-blue); color: white; font-size: 16px; font-weight: 600; 
+            text-decoration: none; transition: 0.3s;
+        }
+        .join-btn:hover { background: var(--tg-hover); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(52, 170, 220, 0.3); }
+
+        footer { margin-top: 30px; font-size: 12px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen"><div class="splash-text">Liz Nexa</div></div>
+
+    <div class="container" id="main-container">
+        <h1 class="header-title">Liz Nexa</h1>
+        
+        <div id="step1">
+            <p class="instruction">Complete steps in order to gain access.</p>
+            
+            <div class="task-card" id="ytTask" onclick="runTask('yt', 'https://www.youtube.com/@LizNexa')">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" width="28">
+                    <span style="font-weight:600; font-size: 14px; color: #333;">Subscribe Channel</span>
+                </div>
+                <span class="status-text" id="ytStatus">Pending</span>
+                <div class="loading-line" id="ytLine"></div>
+            </div>
+
+            <div class="task-card disabled" id="tgTask" onclick="runTask('tg', 'https://t.me/liznexa')">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" width="28">
+                    <span style="font-weight:600; font-size: 14px; color: #333;">Join Group</span>
+                </div>
+                <span class="status-text" id="tgStatus">Locked</span>
+                <div class="loading-line" id="tgLine"></div>
+            </div>
+
+            <div style="text-align:left; font-size:12px; font-weight:700; color:#666; margin-top:20px; text-transform:uppercase;">Password</div>
+            <div class="input-group" id="passGroup">
+                <input type="text" id="passInput" class="pass-input" placeholder="Enter password here">
+                <button class="verify-btn" id="vBtn" onclick="verifyPass()">verify</button>
+            </div>
+            
+            <button class="confirm-btn" id="confirmBtn" disabled onclick="startConfirm()">
+                <div class="loader" id="confirmLoader"></div>
+                <span class="btn-text" id="confirmText">confirm</span>
+            </button>
+        </div>
+
+        <div id="step2">
+            <p class="step2-msg">Thank you for watching and support.</p>
+            
+            <div style="text-align:left; font-size:12px; font-weight:700; color:#666; margin-bottom:8px; text-transform:uppercase;">Your Password</div>
+            <div class="copy-group">
+                <input type="text" class="copy-input" id="resultCode" value="ARRVSGWHV" readonly>
+                <button class="copy-btn" id="copyBtn" onclick="copyCode()">
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                </button>
+            </div>
+
+            <a href="https://t.me/liznexa" target="_blank" class="join-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" width="22">
+                Join Group Telegram
+            </a>
+        </div>
+        
+        <footer>© 2026 Liz Nexa. All rights reserved.</footer>
+    </div>
+
+    <script>
+        // Splash Screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('splash-hidden');
+                document.getElementById('main-container').style.display = 'block';
+            }, 1800);
+        });
+
+        const CORRECT_PASS = "Yourpass1";
+        let ytDone = false, tgDone = false, passVerified = false;
+
+        function runTask(type, url) {
+            const card = document.getElementById(type + 'Task');
+            if (card.classList.contains('disabled') || card.classList.contains('completed')) return;
+            window.open(url, '_blank');
+            document.getElementById(type + 'Status').innerText = 'Checking...';
+            document.getElementById(type + 'Line').style.width = '100%';
+            setTimeout(() => {
+                card.classList.add('completed');
+                document.getElementById(type + 'Status').innerText = 'Completed';
+                if(type === 'yt') { ytDone = true; unlockTG(); } else { tgDone = true; }
+                checkBtn();
+            }, 3000);
+        }
+
+        function unlockTG() {
+            const tg = document.getElementById('tgTask');
+            tg.classList.remove('disabled');
+            document.getElementById('tgStatus').innerText = 'Pending';
+        }
+
+        function verifyPass() {
+            const input = document.getElementById('passInput');
+            const group = document.getElementById('passGroup');
+            const vBtn = document.getElementById('vBtn');
+
+            if(input.value === CORRECT_PASS) {
+                passVerified = true;
+                input.style.borderColor = "#a7f3d0";
+                vBtn.innerHTML = "✓";
+                vBtn.style.background = "#2ecc71";
+                group.classList.remove('error');
+                checkBtn();
+            } else {
+                group.classList.add('error');
+                input.style.borderColor = "#f87171";
+                setTimeout(() => group.classList.remove('error'), 300);
+            }
+        }
+
+        function checkBtn() {
+            const btn = document.getElementById('confirmBtn');
+            if(ytDone && tgDone && passVerified) {
+                btn.classList.add('active');
+                btn.disabled = false;
+            }
+        }
+
+        // ការផ្លាស់ប្តូរពី Step 1 ទៅ Step 2 យ៉ាងរលូន
+        function startConfirm() {
+            const btn = document.getElementById('confirmBtn');
+            const loader = document.getElementById('confirmLoader');
+            const text = document.getElementById('confirmText');
+
+            // 1. បង្ហាញ Loading 1.2s ក្នុងប៊ូតុង
+            text.style.opacity = '0';
+            loader.style.display = 'block';
+            btn.style.pointerEvents = 'none';
+
+            setTimeout(() => {
+                const step1 = document.getElementById('step1');
+                const step2 = document.getElementById('step2');
+
+                // 2. ធ្វើឱ្យ Step 1 រសាត់បាត់ឡើងលើ
+                step1.style.opacity = '0';
+                step1.style.transform = 'translateY(-15px)';
+
+                // 3. រង់ចាំ 0.4s ទើបលាក់ Step 1 ហើយបង្ហាញ Step 2
+                setTimeout(() => {
+                    step1.style.display = 'none';
+                    
+                    step2.style.display = 'block';
+                    // បង្ខំឱ្យ Browser Update មុននឹងចាក់ Animation
+                    void step2.offsetWidth; 
+                    
+                    // 4. ធ្វើឱ្យ Step 2 ផុសច្បាស់ឡើង
+                    step2.style.opacity = '1';
+                    step2.style.transform = 'translateY(0)';
+                }, 400);
+
+            }, 1200);
+        }
+
+        // មុខងារ Copy ដោយគ្មាន Alert
+        function copyCode() {
+            const codeInput = document.getElementById('resultCode');
+            const btn = document.getElementById('copyBtn');
+            
+            codeInput.select();
+            document.execCommand('copy');
+            
+            // ប្តូរទៅពណ៌បៃតង និងលោតសញ្ញាគ្រីស ១វិនាទី
+            const originalIcon = btn.innerHTML;
+            btn.style.background = '#2ecc71';
+            btn.innerHTML = '✓';
+            
+            setTimeout(() => {
+                btn.style.background = 'var(--primary)';
+                btn.innerHTML = originalIcon;
+            }, 1200);
+        }
+    </script>
+</body>
+</html>
